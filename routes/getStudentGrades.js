@@ -2,7 +2,7 @@ import db from '../db/index.js';
 
 export default async function getStudentGradesRoute(fastify) {
   fastify.get('/api/student/grades', async (request, reply) => {
-    const studentId = request.cookies?.studentId;
+    const studentId = request.headers['x-student-id'];
 
     if (!studentId) {
       return reply.code(401).send({ ok: false, message: 'Error occured: Not authenticated. Please log in first' });

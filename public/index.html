@@ -619,9 +619,11 @@
     }
 
     async function apiFetch(path, opts = {}) {
+      const studentId = localStorage.getItem('studentId');
+      const authHeader = studentId ? { 'X-Student-Id': studentId } : {};
       const res = await fetch(API + path, {
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        
+        headers: { 'Content-Type': 'application/json', ...authHeader, ...(opts.headers || {}) },
         ...opts,
       });
       return res.json();
@@ -683,6 +685,7 @@
         });
 
         if (data.ok) {
+          localStorage.setItem('studentId', data.data.id);
           setStudentHeader(data.data);
           showScreen('dashboard');
           loadPanel('info');
@@ -712,6 +715,7 @@
     ───────────────────────────────────────────────────────── */
     $('btn-logout').addEventListener('click', async () => {
       await apiFetch('/logout', { method: 'POST' });
+      localStorage.removeItem('studentId');
       inpEmail.value = '';
       inpPassword.value = '';
       clearErrors();
