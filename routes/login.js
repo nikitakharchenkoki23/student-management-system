@@ -21,11 +21,12 @@ export default async function loginRoute(fastify) {
       return reply.code(403).send({ ok: false, code: 403, message: 'No permissions' });
     }
 
-    // Set login cookie (httpOnly for security)
+    // SameSite=None allows cross-origin cookie (e.g. frontend on different port)
     reply.setCookie('studentId', student.id, {
       path: '/',
       httpOnly: true,
-      sameSite: 'lax',
+      sameSite: 'none',
+      secure: false,
       maxAge: 60 * 60 * 24, // 24 hours
     });
 

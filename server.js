@@ -25,9 +25,9 @@ await fastify.register(fastifyStatic, {
   prefix: '/',
 });
 
-// CORS
+// CORS — reflect the request origin so cookies work from any origin (dev-friendly)
 await fastify.register(fastifyCors, {
-  origin: true,
+  origin: (origin, cb) => cb(null, origin || '*'),
   credentials: true,
 });
 
