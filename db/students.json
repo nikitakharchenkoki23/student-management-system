@@ -1,0 +1,40 @@
+{
+  "students": [
+    {
+      "id": "s001",
+      "name": "Олена Коваль",
+      "email": "olena.koval@school.ua",
+      "password": "pass123",
+      "courses": ["Math", "Physics", "History"],
+      "grades": {
+        "Math": 95,
+        "Physics": 88,
+        "History": 76
+      }
+    },
+    {
+      "id": "s002",
+      "name": "Микита Харченко",
+      "email": "mykyta.kharchenko@school.ua",
+      "password": "qwerty456",
+      "courses": ["Biology", "Chemistry", "English"],
+      "grades": {
+        "Biology": 91,
+        "Chemistry": 84,
+        "English": 97
+      }
+    },
+    {
+      "id": "s003",
+      "name": "Соломія Бондар",
+      "email": "solomiya.bondar@school.ua",
+      "password": "secure789",
+      "courses": ["Math", "English", "Art"],
+      "grades": {
+        "Math": 78,
+        "English": 92,
+        "Art": 99
+      }
+    }
+  ]
+}
