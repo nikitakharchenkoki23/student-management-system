@@ -2,6 +2,11 @@ import 'dotenv/config';
 import Fastify from 'fastify';
 import fastifyCors from '@fastify/cors';
 import fastifyCookie from '@fastify/cookie';
+import fastifyStatic from '@fastify/static';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 import loginRoute from './routes/login.js';
 import logoutRoute from './routes/logout.js';
@@ -13,6 +18,12 @@ const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 
 const fastify = Fastify({ logger: true });
+
+// Static files (frontend)
+await fastify.register(fastifyStatic, {
+  root: join(__dirname, 'public'),
+  prefix: '/',
+});
 
 // CORS
 await fastify.register(fastifyCors, {

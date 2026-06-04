@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduPortal — Студентський кабінет</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Tokens ──────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink:      #0f0e0d;
+      --paper:    #f5f0e8;
+      --cream:    #ede7d8;
+      --gold:     #c9a84c;
+      --gold-lt:  #e8d5a0;
+      --rust:     #b84c2e;
+      --sage:     #4a6741;
+      --muted:    #8a8070;
+      --card:     #ffffff;
+      --shadow:   0 2px 16px rgba(15,14,13,.09);
+      --radius:   14px;
+      --trans:    .22s cubic-bezier(.4,0,.2,1);
+    }
+
+    html { font-size: 16px; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Noise texture overlay ───────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.04'/%3E%3C/svg%3E");
+      pointer-events: none; z-index: 999;
+    }
+
+    /* ── Utility ─────────────────────────────────────────────── */
+    .hidden { display: none !important; }
+    .serif  { font-family: 'DM Serif Display', serif; }
+
+    /* ── Screen manager ──────────────────────────────────────── */
+    .screen { display: none; min-height: 100vh; }
+    .screen.active { display: flex; }
+
+    /* ════════════════════════════════════════════════════════════
+       LOGIN SCREEN
+    ════════════════════════════════════════════════════════════ */
+    #screen-login {
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      position: relative;
+    }
+
+    /* big decorative circle */
+    #screen-login::after {
+      content: '';
+      position: fixed;
+      width: 700px; height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--gold-lt) 0%, transparent 70%);
+      top: -200px; right: -200px;
+      pointer-events: none;
+      opacity: .45;
+    }
+
+    .login-box {
+      background: var(--card);
+      border-radius: 24px;
+      box-shadow: 0 8px 48px rgba(15,14,13,.12);
+      width: 100%; max-width: 420px;
+      padding: 3rem 2.5rem;
+      position: relative; z-index: 1;
+      animation: slideUp .5s cubic-bezier(.4,0,.2,1) both;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(28px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-logo {
+      display: flex; align-items: center; gap: .6rem;
+      margin-bottom: 2rem;
+    }
+    .login-logo .dot {
+      width: 36px; height: 36px;
+      background: var(--gold);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .login-logo span {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.5rem;
+      letter-spacing: -.02em;
+    }
+
+    .login-box h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      line-height: 1.1;
+      margin-bottom: .5rem;
+    }
+    .login-box p.sub {
+      color: var(--muted);
+      font-size: .9rem;
+      margin-bottom: 2rem;
+    }
+
+    .field { margin-bottom: 1.2rem; }
+    .field label {
+      display: block;
+      font-size: .78rem;
+      font-weight: 600;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .4rem;
+    }
+    .field input {
+      width: 100%;
+      padding: .8rem 1rem;
+      border: 1.5px solid var(--cream);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: .95rem;
+      background: var(--paper);
+      color: var(--ink);
+      outline: none;
+      transition: border-color var(--trans), box-shadow var(--trans);
+    }
+    .field input:focus {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 3px rgba(201,168,76,.15);
+    }
+    .field input.err { border-color: var(--rust); }
+
+    .field-error {
+      font-size: .78rem;
+      color: var(--rust);
+      margin-top: .35rem;
+      display: none;
+    }
+    .field-error.show { display: block; }
+
+    .btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      width: 100%;
+      padding: .9rem;
+      border: none; border-radius: 10px;
+      background: var(--ink);
+      color: #fff;
+      font-family: inherit;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background var(--trans), transform var(--trans);
+      margin-top: 1.8rem;
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary:hover  { background: #2a2825; }
+    .btn-primary:active { transform: scale(.98); }
+    .btn-primary:disabled { opacity: .55; pointer-events: none; }
+
+    .btn-primary .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: none;
+    }
+    .btn-primary.loading .spinner { display: block; }
+    .btn-primary.loading .btn-label { display: none; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-banner {
+      background: #fef2f0;
+      border: 1px solid #f8c5bc;
+      color: var(--rust);
+      border-radius: 10px;
+      padding: .8rem 1rem;
+      font-size: .88rem;
+      margin-top: 1rem;
+      display: none;
+      animation: fadeIn .25s ease;
+    }
+    .error-banner.show { display: block; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+    /* ════════════════════════════════════════════════════════════
+       DASHBOARD SCREEN
+    ════════════════════════════════════════════════════════════ */
+    #screen-dashboard {
+      flex-direction: column;
+    }
+
+    /* ── Top nav ─────────────────────────────────────────────── */
+    .topbar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(245,240,232,.9);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--cream);
+      padding: 0 2.5rem;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      animation: slideDown .4s ease both;
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .topbar-logo {
+      display: flex; align-items: center; gap: .5rem;
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem;
+    }
+    .topbar-logo .dot {
+      width: 24px; height: 24px;
+      background: var(--gold);
+      border-radius: 50%;
+    }
+
+    .topbar-right { display: flex; align-items: center; gap: 1.5rem; }
+
+    .student-badge {
+      display: flex; align-items: center; gap: .6rem;
+    }
+    .avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700;
+      font-size: .85rem;
+      flex-shrink: 0;
+    }
+    .student-name-small {
+      font-weight: 500;
+      font-size: .9rem;
+    }
+
+    .btn-logout {
+      padding: .4rem .9rem;
+      border: 1.5px solid var(--cream);
+      background: transparent;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: .85rem;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all var(--trans);
+    }
+    .btn-logout:hover {
+      border-color: var(--rust);
+      color: var(--rust);
+      background: #fef2f0;
+    }
+
+    /* ── Tabs ────────────────────────────────────────────────── */
+    .tabs-bar {
+      display: flex; gap: 0;
+      padding: 0 2.5rem;
+      border-bottom: 1px solid var(--cream);
+      background: var(--card);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs-bar::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      display: flex; align-items: center; gap: .4rem;
+      padding: 1rem 1.4rem;
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      font-family: inherit;
+      font-size: .88rem;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: color var(--trans), border-color var(--trans);
+      margin-bottom: -1px;
+    }
+    .tab-btn:hover { color: var(--ink); }
+    .tab-btn.active {
+      color: var(--ink);
+      border-bottom-color: var(--gold);
+      font-weight: 600;
+    }
+    .tab-btn svg { opacity: .7; }
+    .tab-btn.active svg { opacity: 1; }
+
+    /* ── Main content ────────────────────────────────────────── */
+    .dash-content {
+      flex: 1;
+      padding: 2.5rem;
+      max-width: 900px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    /* ── Tab panels ──────────────────────────────────────────── */
+    .tab-panel { display: none; animation: fadeIn .3s ease both; }
+    .tab-panel.active { display: block; }
+
+    .panel-heading {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.8rem;
+      margin-bottom: .35rem;
+    }
+    .panel-sub {
+      color: var(--muted);
+      font-size: .9rem;
+      margin-bottom: 2rem;
+    }
+
+    /* ── Loading skeleton ────────────────────────────────────── */
+    .skeleton {
+      background: linear-gradient(90deg, var(--cream) 25%, var(--paper) 50%, var(--cream) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer {
+      from { background-position: 200% 0; }
+      to   { background-position: -200% 0; }
+    }
+    .sk-line { height: 16px; margin-bottom: 12px; }
+    .sk-card { height: 90px; margin-bottom: 12px; border-radius: var(--radius); }
+
+    /* ── Info panel ──────────────────────────────────────────── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1.2rem;
+    }
+    .info-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.4rem 1.6rem;
+      border: 1px solid var(--cream);
+      animation: slideUp .4s ease both;
+    }
+    .info-card .ic-label {
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: .4rem;
+    }
+    .info-card .ic-value {
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+    .info-card.accent {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+    .info-card.accent .ic-label { color: rgba(255,255,255,.5); }
+
+    /* ── Grades panel ────────────────────────────────────────── */
+    .grades-list { display: flex; flex-direction: column; gap: .75rem; }
+
+    .grade-row {
+      background: var(--card);
+      border: 1px solid var(--cream);
+      border-radius: var(--radius);
+      padding: 1rem 1.4rem;
+      display: flex; align-items: center; gap: 1rem;
+      box-shadow: var(--shadow);
+      animation: slideUp .4s ease both;
+    }
+    .grade-subject {
+      flex: 1;
+      font-weight: 500;
+    }
+    .grade-bar-wrap {
+      flex: 2;
+      height: 8px;
+      background: var(--cream);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .grade-bar {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 1s cubic-bezier(.4,0,.2,1);
+      width: 0%;
+    }
+    .grade-score {
+      font-weight: 700;
+      font-size: 1.1rem;
+      min-width: 40px;
+      text-align: right;
+    }
+
+    /* grade colors */
+    .grade-bar.s-ex  { background: var(--sage); }
+    .grade-bar.s-gd  { background: var(--gold); }
+    .grade-bar.s-ok  { background: #d4883e; }
+    .grade-bar.s-lw  { background: var(--rust); }
+
+    .grade-score.s-ex  { color: var(--sage); }
+    .grade-score.s-gd  { color: var(--gold); }
+    .grade-score.s-ok  { color: #d4883e; }
+    .grade-score.s-lw  { color: var(--rust); }
+
+    .grades-summary {
+      margin-top: 1.5rem;
+      background: var(--card);
+      border: 1px solid var(--cream);
+      border-radius: var(--radius);
+      padding: 1.2rem 1.6rem;
+      display: flex; align-items: center; gap: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+    .gs-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 3rem;
+      line-height: 1;
+      color: var(--gold);
+    }
+    .gs-label { font-size: .85rem; color: var(--muted); margin-top: .25rem; }
+
+    /* ── Courses panel ───────────────────────────────────────── */
+    .courses-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .course-card {
+      background: var(--card);
+      border: 1px solid var(--cream);
+      border-radius: var(--radius);
+      padding: 1.6rem 1.4rem;
+      box-shadow: var(--shadow);
+      display: flex; flex-direction: column; gap: .5rem;
+      animation: slideUp .4s ease both;
+      cursor: default;
+      transition: transform var(--trans), box-shadow var(--trans);
+    }
+    .course-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 28px rgba(15,14,13,.1);
+    }
+    .course-icon {
+      width: 40px; height: 40px;
+      border-radius: 10px;
+      background: var(--cream);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.3rem;
+      margin-bottom: .3rem;
+    }
+    .course-name {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+    .course-tag {
+      display: inline-block;
+      padding: .2rem .55rem;
+      background: var(--paper);
+      border: 1px solid var(--cream);
+      border-radius: 6px;
+      font-size: .72rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    /* ── Empty / error states ────────────────────────────────── */
+    .state-box {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+    }
+    .state-box .state-icon { font-size: 2.5rem; margin-bottom: .75rem; }
+    .state-box p { font-size: .95rem; }
+
+    /* ── Responsive ──────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      .topbar, .tabs-bar { padding: 0 1rem; }
+      .dash-content { padding: 1.5rem 1rem; }
+      .grade-bar-wrap { flex: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════════════
+       LOGIN SCREEN
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="screen-login" class="screen active">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="dot"></div>
+        <span>EduPortal</span>
+      </div>
+
+      <h1>Вхід до кабінету</h1>
+      <p class="sub">Введіть свої дані для доступу до особистого кабінету</p>
+
+      <div class="field">
+        <label for="inp-email">Email</label>
+        <input id="inp-email" type="email" placeholder="student@school.ua" autocomplete="email" />
+        <div class="field-error" id="err-email"></div>
+      </div>
+
+      <div class="field">
+        <label for="inp-password">Пароль</label>
+        <input id="inp-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+        <div class="field-error" id="err-password"></div>
+      </div>
+
+      <div class="error-banner" id="login-error"></div>
+
+      <button class="btn-primary" id="btn-login">
+        <div class="spinner"></div>
+        <span class="btn-label">Увійти</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       DASHBOARD SCREEN
+  ═══════════════════════════════════════════════════════════ -->
+  <div id="screen-dashboard" class="screen">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-logo">
+        <div class="dot"></div>
+        EduPortal
+      </div>
+      <div class="topbar-right">
+        <div class="student-badge">
+          <div class="avatar" id="dash-avatar">–</div>
+          <span class="student-name-small" id="dash-name">...</span>
+        </div>
+        <button class="btn-logout" id="btn-logout">Вийти</button>
+      </div>
+    </header>
+
+    <!-- Tabs -->
+    <nav class="tabs-bar">
+      <button class="tab-btn active" data-tab="info">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        Профіль
+      </button>
+      <button class="tab-btn" data-tab="grades">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        Оцінки
+      </button>
+      <button class="tab-btn" data-tab="courses">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        Курси
+      </button>
+    </nav>
+
+    <!-- Content -->
+    <main class="dash-content">
+
+      <!-- INFO PANEL -->
+      <div id="panel-info" class="tab-panel active">
+        <div class="panel-heading">Профіль студента</div>
+        <div class="panel-sub">Ваші особисті дані</div>
+        <div id="info-body"></div>
+      </div>
+
+      <!-- GRADES PANEL -->
+      <div id="panel-grades" class="tab-panel">
+        <div class="panel-heading">Успішність</div>
+        <div class="panel-sub">Поточні оцінки по предметах</div>
+        <div id="grades-body"></div>
+      </div>
+
+      <!-- COURSES PANEL -->
+      <div id="panel-courses" class="tab-panel">
+        <div class="panel-heading">Мої курси</div>
+        <div class="panel-sub">Перелік дисциплін, на які ви записані</div>
+        <div id="courses-body"></div>
+      </div>
+
+    </main>
+  </div>
+
+  <script>
+    /* ─────────────────────────────────────────────────────────
+       CONFIG
+    ───────────────────────────────────────────────────────── */
+    const API = 'http://localhost:3000/api';
+
+    /* ─────────────────────────────────────────────────────────
+       HELPERS
+    ───────────────────────────────────────────────────────── */
+    const $ = id => document.getElementById(id);
+    const show = el => el.classList.add('active');
+    const hide = el => el.classList.remove('active');
+
+    function showScreen(name) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      $('screen-' + name).classList.add('active');
+    }
+
+    async function apiFetch(path, opts = {}) {
+      const res = await fetch(API + path, {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+        ...opts,
+      });
+      return res.json();
+    }
+
+    function skeleton(lines = 3, type = 'line') {
+      return Array.from({ length: lines }, () =>
+        `<div class="skeleton ${type === 'card' ? 'sk-card' : 'sk-line'}" style="width:${60 + Math.random()*35}%"></div>`
+      ).join('');
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       LOGIN
+    ───────────────────────────────────────────────────────── */
+    const inpEmail    = $('inp-email');
+    const inpPassword = $('inp-password');
+    const btnLogin    = $('btn-login');
+    const loginError  = $('login-error');
+
+    function setFieldError(fieldId, msg) {
+      const el = $(fieldId);
+      if (msg) { el.textContent = msg; el.classList.add('show'); }
+      else      { el.textContent = ''; el.classList.remove('show'); }
+    }
+
+    function clearErrors() {
+      setFieldError('err-email', '');
+      setFieldError('err-password', '');
+      loginError.classList.remove('show');
+      inpEmail.classList.remove('err');
+      inpPassword.classList.remove('err');
+    }
+
+    btnLogin.addEventListener('click', async () => {
+      clearErrors();
+      const email    = inpEmail.value.trim();
+      const password = inpPassword.value;
+      let valid = true;
+
+      if (!email) {
+        setFieldError('err-email', 'Вкажіть email');
+        inpEmail.classList.add('err');
+        valid = false;
+      }
+      if (!password) {
+        setFieldError('err-password', 'Вкажіть пароль');
+        inpPassword.classList.add('err');
+        valid = false;
+      }
+      if (!valid) return;
+
+      btnLogin.classList.add('loading');
+      btnLogin.disabled = true;
+
+      try {
+        const data = await apiFetch('/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (data.ok) {
+          setStudentHeader(data.data);
+          showScreen('dashboard');
+          loadPanel('info');
+        } else if (data.code === 403) {
+          loginError.textContent = 'Невірний email або пароль';
+          loginError.classList.add('show');
+        } else {
+          loginError.textContent = data.message || 'Сталася помилка';
+          loginError.classList.add('show');
+        }
+      } catch (e) {
+        loginError.textContent = 'Не вдалося підключитися до сервера';
+        loginError.classList.add('show');
+      } finally {
+        btnLogin.classList.remove('loading');
+        btnLogin.disabled = false;
+      }
+    });
+
+    // Enter key
+    [inpEmail, inpPassword].forEach(el =>
+      el.addEventListener('keydown', e => e.key === 'Enter' && btnLogin.click())
+    );
+
+    /* ─────────────────────────────────────────────────────────
+       LOGOUT
+    ───────────────────────────────────────────────────────── */
+    $('btn-logout').addEventListener('click', async () => {
+      await apiFetch('/logout', { method: 'POST' });
+      inpEmail.value = '';
+      inpPassword.value = '';
+      clearErrors();
+      panelCache = {};
+      showScreen('login');
+    });
+
+    /* ─────────────────────────────────────────────────────────
+       DASHBOARD HEADER
+    ───────────────────────────────────────────────────────── */
+    function setStudentHeader(student) {
+      $('dash-name').textContent = student.name || student.email;
+      $('dash-avatar').textContent = (student.name || '?')[0].toUpperCase();
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       TABS
+    ───────────────────────────────────────────────────────── */
+    let panelCache = {};
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        $('panel-' + tab).classList.add('active');
+        loadPanel(tab);
+      });
+    });
+
+    /* ─────────────────────────────────────────────────────────
+       PANEL LOADERS
+    ───────────────────────────────────────────────────────── */
+    async function loadPanel(tab) {
+      if (panelCache[tab]) return; // already loaded
+
+      if (tab === 'info')    await loadInfo();
+      if (tab === 'grades')  await loadGrades();
+      if (tab === 'courses') await loadCourses();
+      panelCache[tab] = true;
+    }
+
+    /* ── INFO ────────────────────────────────────────────────── */
+    async function loadInfo() {
+      const body = $('info-body');
+      body.innerHTML = `<div class="info-grid">${skeleton(3,'card')}</div>`;
+
+      const data = await apiFetch('/student/info');
+      if (!data.ok) { body.innerHTML = errorState(data.message); return; }
+
+      const s = data.data;
+      body.innerHTML = `
+        <div class="info-grid">
+          <div class="info-card accent">
+            <div class="ic-label">Ім'я студента</div>
+            <div class="ic-value">${esc(s.name)}</div>
+          </div>
+          <div class="info-card">
+            <div class="ic-label">Email</div>
+            <div class="ic-value">${esc(s.email)}</div>
+          </div>
+          <div class="info-card">
+            <div class="ic-label">ID</div>
+            <div class="ic-value" style="font-family:monospace;font-size:.9rem">${esc(s.id)}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    /* ── GRADES ─────────────────────────────────────────────── */
+    async function loadGrades() {
+      const body = $('grades-body');
+      body.innerHTML = `<div class="grades-list">${skeleton(4,'card')}</div>`;
+
+      const data = await apiFetch('/student/grades');
+      if (!data.ok) { body.innerHTML = errorState(data.message); return; }
+
+      const grades = data.data.grades;
+      const entries = Object.entries(grades);
+      if (!entries.length) {
+        body.innerHTML = emptyState('📭', 'Оцінок ще немає');
+        return;
+      }
+
+      const avg = Math.round(entries.reduce((s, [,v]) => s + v, 0) / entries.length);
+
+      const rows = entries.map(([sub, score], i) => {
+        const cls = score >= 90 ? 's-ex' : score >= 75 ? 's-gd' : score >= 60 ? 's-ok' : 's-lw';
+        return `
+          <div class="grade-row" style="animation-delay:${i * .07}s">
+            <div class="grade-subject">${esc(sub)}</div>
+            <div class="grade-bar-wrap">
+              <div class="grade-bar ${cls}" data-w="${score}" style="width:0%"></div>
+            </div>
+            <div class="grade-score ${cls}">${score}</div>
+          </div>`;
+      }).join('');
+
+      body.innerHTML = `
+        <div class="grades-list">${rows}</div>
+        <div class="grades-summary">
+          <div class="gs-num">${avg}</div>
+          <div>
+            <div style="font-weight:600">Середній бал</div>
+            <div class="gs-label">по ${entries.length} предмет${declension(entries.length)}</div>
+          </div>
+        </div>
+      `;
+
+      // Animate bars after render
+      requestAnimationFrame(() => {
+        document.querySelectorAll('.grade-bar[data-w]').forEach(bar => {
+          bar.style.width = bar.dataset.w + '%';
+        });
+      });
+    }
+
+    /* ── COURSES ────────────────────────────────────────────── */
+    const COURSE_ICONS = {
+      math: '📐', physics: '⚗️', history: '📜', biology: '🌿',
+      chemistry: '🧪', english: '🇬🇧', art: '🎨', default: '📚'
+    };
+    function courseIcon(name) {
+      const key = name.toLowerCase();
+      for (const [k, v] of Object.entries(COURSE_ICONS)) if (key.includes(k)) return v;
+      return COURSE_ICONS.default;
+    }
+
+    async function loadCourses() {
+      const body = $('courses-body');
+      body.innerHTML = `<div class="courses-grid">${skeleton(4,'card')}</div>`;
+
+      const data = await apiFetch('/student/courses');
+      if (!data.ok) { body.innerHTML = errorState(data.message); return; }
+
+      const courses = data.data.courses;
+      if (!courses.length) {
+        body.innerHTML = emptyState('📭', 'Курсів ще немає');
+        return;
+      }
+
+      const cards = courses.map((c, i) => `
+        <div class="course-card" style="animation-delay:${i * .08}s">
+          <div class="course-icon">${courseIcon(c)}</div>
+          <div class="course-name">${esc(c)}</div>
+          <div><span class="course-tag">Активний</span></div>
+        </div>
+      `).join('');
+
+      body.innerHTML = `<div class="courses-grid">${cards}</div>`;
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       SMALL UTILITIES
+    ───────────────────────────────────────────────────────── */
+    function esc(str) {
+      return String(str).replace(/[&<>"']/g, c =>
+        ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])
+      );
+    }
+    function errorState(msg) {
+      return `<div class="state-box"><div class="state-icon">⚠️</div><p>${esc(msg || 'Сталася помилка')}</p></div>`;
+    }
+    function emptyState(icon, msg) {
+      return `<div class="state-box"><div class="state-icon">${icon}</div><p>${msg}</p></div>`;
+    }
+    function declension(n) {
+      if (n % 10 === 1 && n % 100 !== 11) return 'а';
+      if ([2,3,4].includes(n % 10) && ![12,13,14].includes(n % 100)) return 'и';
+      return 'ів';
+    }
+
+    /* ─────────────────────────────────────────────────────────
+       INIT — check if already logged in
+    ───────────────────────────────────────────────────────── */
+    (async () => {
+      try {
+        const data = await apiFetch('/student/info');
+        if (data.ok) {
+          setStudentHeader(data.data);
+          showScreen('dashboard');
+          loadPanel('info');
+        }
+      } catch (_) { /* not logged in, stay on login screen */ }
+    })();
+  </script>
+</body>
+</html>
